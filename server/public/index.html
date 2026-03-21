@@ -584,7 +584,14 @@
         }
 
         function loadFile(file) {
-            if (!filenameEl.value.trim()) filenameEl.value = file.name;
+            filenameEl.value = file.name;
+
+            // Clear any previously generated active video stream from the UI
+            video.src = '';
+            video.style.display = 'none';
+            playerControls.style.display = 'none';
+            playerHint.style.display = 'none';
+            playerEmpty.style.display = 'block';
 
             if (file.type.startsWith('image/')) {
                 const reader = new FileReader();
