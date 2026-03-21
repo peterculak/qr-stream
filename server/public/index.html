@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Stream [ ENCODE ]</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+        }
+
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background: #000;
+            color: #0f0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            text-align: center;
+            padding: 1rem 1rem 0.5rem;
+            flex-shrink: 0;
+            border-bottom: 1px dashed #0a0;
+            margin-bottom: 1rem;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: #0f0;
+            text-shadow: 0 0 5px #0f0;
+        }
+
+        header p {
+            color: #0a0;
+            font-size: 0.8rem;
+            margin-top: 0.4rem;
+            text-transform: uppercase;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            padding: 0 1.5rem 1rem;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .card {
+            background: #000;
+            border: 1px solid #0f0;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            min-height: 0;
+            position: relative;
+        }
+
+        .player-card {
+            background: #000;
+            border: 1px dashed #0f0;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .player-card .empty {
+            text-align: center;
+            color: #0a0;
+        }
+
+        .player-card .empty .placeholder {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.7;
+        }
+
+        .player-card .empty p {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+
+        label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #0c0;
+            margin-bottom: 0.4rem;
+        }
+
+        .input-zone {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            min-height: 0;
+            margin-top: 8px;
+        }
+
+        .drop-wrap,
+        .text-wrap {
+            transition: flex 0.2s steps(4);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .drop-wrap {
+            flex: 3;
+        }
+
+        .text-wrap {
+            flex: 2;
+        }
+
+        .input-zone.text-focused .drop-wrap {
+            flex: 1;
+        }
+
+        .input-zone.text-focused .text-wrap {
+            flex: 5;
+        }
+
+        .input-zone.drop-active .drop-wrap {
+            flex: 5;
+        }
+
+        .input-zone.drop-active .text-wrap {
+            flex: 1;
+        }
+
+        .drop-zone {
+            flex: 1;
+            position: relative;
+            border: 1px dashed #0a0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.1s;
+            min-height: 50px;
+            background: rgba(0, 255, 0, 0.02);
+        }
+
+        .drop-zone:hover,
+        .drop-zone.drag-over {
+            border-color: #0f0;
+            background: rgba(0, 255, 0, 0.1);
+        }
+
+        .drop-zone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .drop-zone p {
+            color: #0f0;
+            font-size: 0.8rem;
+            pointer-events: none;
+            text-transform: uppercase;
+        }
+
+        textarea {
+            flex: 1;
+            width: 100%;
+            min-height: 40px;
+            background: #000;
+            border: 1px solid #0a0;
+            padding: 0.65rem;
+            color: #0f0;
+            font-family: inherit;
+            font-size: 0.8rem;
+            resize: none;
+        }
+
+        textarea:focus {
+            outline: none;
+            border: 1px solid #0f0;
+            box-shadow: 0 0 5px rgba(0, 255, 0, 0.2);
+        }
+
+        textarea::placeholder {
+            color: #040;
+        }
+
+        .preview {
+            position: relative;
+            border: 1px solid #0f0;
+            overflow: hidden;
+            background: #000;
+            flex: 1;
+        }
+
+        .preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+            /* terminal green tint */
+            filter: grayscale(100%) sepia(100%) hue-rotate(80deg) brightness(1.2) contrast(1.2);
+        }
+
+        .remove-preview {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 22px;
+            height: 22px;
+            background: #000;
+            border: 1px solid #0f0;
+            color: #0f0;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .remove-preview:hover {
+            background: #f00;
+            border-color: #f00;
+            color: #000;
+        }
+
+        .controls {
+            flex-shrink: 0;
+            margin-top: 1rem;
+            border-top: 1px dashed #0a0;
+            padding-top: 1rem;
+        }
+
+        .row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .row .field {
+            flex: 1;
+        }
+
+        input[type="password"],
+        input[type="text"],
+        select {
+            width: 100%;
+            background: #000;
+            border: 1px solid #0a0;
+            padding: 0.5rem;
+            color: #0f0;
+            font-family: inherit;
+            font-size: 0.8rem;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #0f0;
+            box-shadow: 0 0 5px rgba(0, 255, 0, 0.2);
+        }
+
+        input::placeholder {
+            color: #040;
+        }
+
+        select option {
+            background: #000;
+            color: #0f0;
+        }
+
+        button {
+            width: 100%;
+            background: #000;
+            border: 1px solid #0f0;
+            color: #0f0;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: bold;
+            padding: 0.6rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.1s;
+        }
+
+        button:hover {
+            background: #0f0;
+            color: #000;
+        }
+
+        button:active {
+            transform: translateY(2px);
+        }
+
+        button:disabled {
+            border-color: #040;
+            color: #040;
+            cursor: not-allowed;
+            background: #000;
+            box-shadow: none;
+        }
+
+        .status {
+            text-align: center;
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            color: #0a0;
+            min-height: 1.2em;
+            text-transform: uppercase;
+        }
+
+        .status.error {
+            color: #f00;
+            text-shadow: 0 0 5px #f00;
+        }
+
+        .status.success {
+            color: #0f0;
+        }
+
+        .spinner {
+            display: inline-block;
+            animation: blink 1s step-end infinite;
+        }
+
+        .spinner::before {
+            content: "█";
+        }
+
+        @keyframes blink {
+            50% {
+                opacity: 0;
+            }
+        }
+
+        .player-card video {
+            width: 100%;
+            max-height: 100%;
+            border: 1px solid #0f0;
+            background: #000;
+            object-fit: contain;
+        }
+
+        .player-controls {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            flex-shrink: 0;
+        }
+
+        .play-btn {
+            width: auto;
+            padding: 0.4rem 1.5rem;
+        }
+
+        .secondary-btn {
+            width: auto;
+            padding: 0.4rem 1rem;
+            border-color: #0a0;
+            color: #0a0;
+        }
+
+        .secondary-btn:hover {
+            background: #0a0;
+            color: #000;
+        }
+
+        .player-hint {
+            color: #0a0;
+            font-size: 0.7rem;
+            margin-top: 0.5rem;
+            flex-shrink: 0;
+            text-transform: uppercase;
+        }
+
+        @media (max-width: 768px) {
+
+            html,
+            body {
+                overflow: auto;
+                border: none;
+            }
+
+            .layout {
+                grid-template-columns: 1fr;
+                overflow: auto;
+                padding: 0.5rem;
+            }
+
+            .card {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>[ QR STREAM ]</h1>
+        <p>System.out.println("compress -> encrypt -> broadcast");</p>
+    </header>
+
+    <div class="layout">
+        <!-- Left: Input -->
+        <div class="card">
+            <div class="input-zone" id="input-zone">
+                <div class="drop-wrap" id="drop-wrap">
+                    <label>> UPLOAD_FILE</label>
+                    <div class="drop-zone" id="drop-zone">
+                        <input type="file" id="file-input" />
+                        <p>[ CLICK OR DROP FILE HERE ]</p>
+                    </div>
+                    <div class="preview" id="preview" style="display:none">
+                        <img id="preview-img" />
+                        <button class="remove-preview" id="remove-preview">X</button>
+                    </div>
+                </div>
+
+                <div class="text-wrap" id="text-wrap">
+                    <label for="text-input">> TEXT_INPUT</label>
+                    <textarea id="text-input" placeholder="_enter_payload_data_"></textarea>
+                </div>
+            </div>
+
+            <div class="controls">
+                <div class="row">
+                    <div class="field">
+                        <label for="filename-input">> FILENAME_META</label>
+                        <input type="text" id="filename-input" placeholder="data.bin" />
+                    </div>
+                    <div class="field">
+                        <label for="fps-select">> TRANSFER_RATE (FPS)</label>
+                        <select id="fps-select">
+                            <option value="1">1 fps</option>
+                            <option value="2">2 fps</option>
+                            <option value="3" selected>3 fps</option>
+                            <option value="5">5 fps</option>
+                            <option value="8">8 fps</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="field">
+                        <label for="password-input">> SECURE_KEY</label>
+                        <input type="password" id="password-input" placeholder="_leave_empty_for_public_broadcast_" />
+                    </div>
+                </div>
+
+                <button id="generate-btn">> GENERATE_VIDEO_STREAM</button>
+                <div class="status" id="status"></div>
+            </div>
+        </div>
+
+        <!-- Right: Video Player -->
+        <div class="player-card" id="player-card">
+            <div id="player-empty" class="empty">
+                <div class="placeholder">■</div>
+                <p>AWAITING_SIGNAL...</p>
+            </div>
+            <video id="qr-video" loop muted playsinline style="display:none"></video>
+            <div class="player-controls" id="player-controls" style="display:none">
+                <button id="play-btn" class="play-btn">> PLAY_STREAM</button>
+                <button id="fullscreen-btn" class="secondary-btn">[ FULLSCREEN ]</button>
+            </div>
+            <p class="player-hint" id="player-hint" style="display:none">
+                INITIATE PLAYBACK AND ALIGN SCANNER WITH MONITOR
+            </p>
+        </div>
+    </div>
+
+    <script>
+        const textEl = document.getElementById('text-input');
+        const passEl = document.getElementById('password-input');
+        const fpsEl = document.getElementById('fps-select');
+        const filenameEl = document.getElementById('filename-input');
+        const fileInput = document.getElementById('file-input');
+        const dropZone = document.getElementById('drop-zone');
+        const inputZone = document.getElementById('input-zone');
+        const btn = document.getElementById('generate-btn');
+        const statusEl = document.getElementById('status');
+        const video = document.getElementById('qr-video');
+        const playBtn = document.getElementById('play-btn');
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const preview = document.getElementById('preview');
+        const previewImg = document.getElementById('preview-img');
+        const removePreview = document.getElementById('remove-preview');
+        const playerEmpty = document.getElementById('player-empty');
+        const playerControls = document.getElementById('player-controls');
+        const playerHint = document.getElementById('player-hint');
+
+        // Animated expand/collapse on focus
+        textEl.addEventListener('focus', () => {
+            inputZone.classList.add('text-focused');
+            inputZone.classList.remove('drop-active');
+        });
+
+        textEl.addEventListener('blur', () => {
+            if (!textEl.value.trim()) {
+                inputZone.classList.remove('text-focused');
+            }
+        });
+
+        // File upload
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) loadFile(e.target.files[0]);
+        });
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            if (e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]);
+        });
+
+        removePreview.addEventListener('click', () => {
+            preview.style.display = 'none';
+            dropZone.style.display = '';
+            textEl.value = '';
+            inputZone.classList.remove('drop-active');
+        });
+
+        const TEXT_EXTENSIONS = new Set([
+            'txt', 'md', 'json', 'csv', 'xml', 'html', 'htm', 'css', 'js', 'ts', 'py', 'sh',
+            'yaml', 'yml', 'toml', 'cfg', 'ini', 'log', 'svg', 'c', 'cpp', 'h', 'java',
+            'rb', 'go', 'rs', 'swift', 'kt', 'sql', 'r', 'lua', 'pl', 'php'
+        ]);
+
+        function isTextFile(file) {
+            if (file.type.startsWith('text/')) return true;
+            if (file.type === 'application/json') return true;
+            if (file.type === 'application/xml') return true;
+            const ext = file.name.split('.').pop().toLowerCase();
+            return TEXT_EXTENSIONS.has(ext);
+        }
+
+        function loadFile(file) {
+            if (!filenameEl.value.trim()) filenameEl.value = file.name;
+
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewImg.src = e.target.result;
+                    preview.style.display = 'block';
+                    dropZone.style.display = 'none';
+                    textEl.value = e.target.result;
+                    inputZone.classList.add('drop-active');
+                    inputZone.classList.remove('text-focused');
+                    setStatus(`[OK] LOAD_IMG: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`, 'success');
+                };
+                reader.readAsDataURL(file);
+            } else if (isTextFile(file)) {
+                preview.style.display = 'none';
+                dropZone.style.display = '';
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    textEl.value = e.target.result;
+                    inputZone.classList.add('text-focused');
+                    inputZone.classList.remove('drop-active');
+                    setStatus(`[OK] LOAD_TXT: ${file.name} (${file.size} B)`, 'success');
+                };
+                reader.readAsText(file);
+            } else {
+                // Binary file — read as base64 data URL
+                preview.style.display = 'none';
+                dropZone.style.display = '';
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    textEl.value = e.target.result;
+                    inputZone.classList.add('text-focused');
+                    inputZone.classList.remove('drop-active');
+                    setStatus(`[OK] LOAD_BIN: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`, 'success');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Generate
+        btn.addEventListener('click', async () => {
+            const text = textEl.value.trim();
+            const password = passEl.value;
+            const fps = parseInt(fpsEl.value);
+            const filename = filenameEl.value.trim() || 'data.bin';
+
+            if (!text) return setStatus('[ERR] NO_PAYLOAD_PROVIDED', 'error');
+
+            btn.disabled = true;
+            setStatus('<span class="spinner"></span> COMPILING_STREAM...');
+
+            try {
+                const resp = await fetch('/api/encode', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text, password, fps, filename }),
+                });
+
+                if (!resp.ok) {
+                    const err = await resp.json();
+                    throw new Error(err.error || 'SERVER_FAULT');
+                }
+
+                const blob = await resp.blob();
+                const url = URL.createObjectURL(blob);
+
+                video.src = url;
+                video.style.display = 'block';
+                playerEmpty.style.display = 'none';
+                playerControls.style.display = 'flex';
+                playerHint.style.display = 'block';
+                playBtn.textContent = '> PLAY_STREAM';
+
+                setStatus('[OK] SIGNAL_READY', 'success');
+            } catch (err) {
+                setStatus(`[ERR] ${err.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        // Play/Pause
+        playBtn.addEventListener('click', () => {
+            if (video.paused) {
+                video.play();
+                playBtn.textContent = '|| PAUSE_STREAM';
+                playBtn.style.color = '#000';
+                playBtn.style.background = '#0f0';
+            } else {
+                video.pause();
+                playBtn.textContent = '> PLAY_STREAM';
+                playBtn.style.color = '#0f0';
+                playBtn.style.background = '#000';
+            }
+        });
+
+        fullscreenBtn.addEventListener('click', () => {
+            const card = document.getElementById('player-card');
+            if (card.requestFullscreen) card.requestFullscreen();
+            else if (card.webkitRequestFullscreen) card.webkitRequestFullscreen();
+        });
+
+        function setStatus(msg, type = '') {
+            statusEl.className = 'status' + (type ? ` ${type}` : '');
+            statusEl.innerHTML = msg;
+        }
+    </script>
+</body>
+
+</html>
