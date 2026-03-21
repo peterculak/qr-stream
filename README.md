@@ -1,33 +1,14 @@
-# [ QR STREAM ] 
-
-A retro-futuristic, fully air-gapped file transfer system that uses animated QR codes to broadcast documents, images, and text directly from a web browser to an iOS device. 
+# QR Stream
+Stream raw binary files from your monitor to your iPhone using ultra-dense 8x QR Code matrices. Completely air-gapped data transfer.
 
 ## Features
+- **High-Density Payload Engine**: Groups up to 8x QR chunks into a single dynamic 4x2 matrix grid on screen instantly using Node `sharp`.
+- **Landscape iOS Scanner**: Natively tracks widescreen 1600x800 QR Grids using automatic hardware `AVCaptureVideoOrientation` mapping. 
+- **Fountain Code Engine (Luby Transform)**: Replaces standard sequential framing with an infinite mathematical "Fountain" of XOR'd packet drops. See [server/FOUNTAIN-ARCHITECTURE.md](server/FOUNTAIN-ARCHITECTURE.md) to understand how the PRNG and XOR cascading completely eliminates dropped frames (the Coupon Collector's problem). It allows you to recover any file from *any* random sample of video drops.
+- **Max Compression**: Level 9 Zlib deflation on all payloads.
 
-- **100% Air-Gapped**: Transfer files to your phone without Bluetooth, Airdrop, Wi-Fi, or cables. The data is entirely encoded within the visual QR stream.
-- **Support for All Files**: Transfer `.docx`, `.pdf`, `.zip`, `.png`, and plain text. Binary files are correctly encoded in Base64 streams and saved exactly as is.
-- **AES-256 Encryption**: Secure your transfers with an optional password. Your payload is encrypted in the browser before ever being converted into a video stream.
-- **80s Mono-Terminal Aesthetic**: Immersive green-on-black UI with scanning readouts and retro ASCII progress bars.
-- **Native File Management**: Decoded files are saved straight into your iOS `Documents` directory, making them accessible via the native iOS **Files app**.
-
-## How it works
-
-1. **Upload & Encode**: Drop a file into the web UI (`localhost:3000`).
-2. **Compress & Encrypt**: The Node.js server compresses the file using `zlib` (raw deflate) and encrypts it (AES-256-GCM) if a password is provided.
-3. **Chunking**: The payload is split into small chunks, and each chunk is wrapped in a JSON envelope with an index and metadata: `{"i": 0, "n": 50, "f": "document.pdf", "d": "base64..."}`.
-4. **Broadcast**: `ffmpeg` generates an MP4 video out of the QR codes representing each chunk. 
-5. **Scan & Assemble**: The iOS app rapidly scans the streaming video, intelligently reassembling chunks out-of-order, verifying completion, and extracting the raw file.
-
-## Setup Instructions
-
-### Web / Server
-```bash
-cd server
-npm install
-node index.js
-```
-*The server will run on `http://localhost:3000`.*
-
-### iOS App
-Open `ios/QRStream/QRStream.xcodeproj` in Xcode.
-Build and run the application on a physical iOS device (a physical camera is required for scanning).
+## Usage
+1. `cd server` & `npm install`
+2. `npm start`
+3. Open `http://localhost:3000`
+4. Rebuild the `QRStream` iOS app in Xcode.

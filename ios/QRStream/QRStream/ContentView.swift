@@ -217,6 +217,21 @@ struct ScannerTab: View {
                         Text("RCV: \(formatBytes(assembler.bytesReceived))")
                             .font(.system(.body, design: .monospaced))
                             .foregroundColor(.neonGreen)
+                            
+                        let missing = assembler.missingIndices
+                        if !missing.isEmpty {
+                            let missingPrefix = missing.prefix(10).map { String($0) }.joined(separator: ",")
+                            let missingSuffix = missing.count > 10 ? "..." : ""
+                            Text("DRP[\(missing.count)]: \(missingPrefix)\(missingSuffix)")
+                                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                .foregroundColor(.neonGreen)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.center)
+                                .padding(.top, 4)
+                                .onTapGesture {
+                                    UIPasteboard.general.string = missing.map { String($0) }.joined(separator: ",")
+                                }
+                        }
                     } else {
                         Text("AWAITING_SIGNAL...")
                             .font(.system(.subheadline, design: .monospaced))

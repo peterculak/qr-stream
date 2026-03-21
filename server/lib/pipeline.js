@@ -17,12 +17,12 @@ const PLAIN_MAGIC = Buffer.from([0xDA, 0x7A]);
  * @param {string} text - The plaintext to encode
  * @param {string} password - Encryption password (empty/null = no encryption)
  * @param {string} filename - Filename for the receiver to save as
- * @param {number} chunkSize - Max bytes per QR frame payload (before base64)
+ * @param {Array<number>} missingFrames - Optional array of specific frame indices to re-broadcast
  * @returns {Promise<string[]>} Array of JSON strings, one per QR frame
  */
-async function encode(text, password, filename = 'received.txt', chunkSize = 600) {
-  // 1. Compress (raw deflate)
-  const compressed = zlib.deflateRawSync(Buffer.from(text, 'utf-8'));
+async function encode(text, password, filename = 'received.txt', chunkSize = 600, missingFrames = null) {
+  // 1. Compress (raw deflate) - max compression
+  const compressed = zlib.deflateRawSync(Buffer.from(text, 'utf-8'), { level: 9 });
 
   let packed;
 
@@ -51,9 +51,14 @@ async function encode(text, password, filename = 'received.txt', chunkSize = 600
 
   // 4. Frame format: JSON with index, total, base64 data, and filename
   const totalFrames = chunks.length;
-  const frames = chunks.map((chunk, i) =>
+  let frames = chunks.map((chunk, i) =>
     JSON.stringify({ i, n: totalFrames, f: filename, d: chunk.toString('base64') })
   );
+
+  // 5. If user specifically requested only missing frames, filter the output heavily
+  if (Array.isArray(missingFrames) && missingFrames.length > 0) {
+    frames = frames.filter((_, i) => missingFrames.includes(i));
+  }
 
   return frames;
 }

@@ -12,23 +12,31 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.post('/api/encode', async (req, res) => {
     try {
-        const { text, password, fps, filename } = req.body;
+        const { text, password, fps, filename, tiles, missingFrames } = req.body;
 
         if (!text) {
             return res.status(400).json({ error: 'text is required' });
         }
 
         const selectedFps = Math.min(Math.max(parseInt(fps) || 3, 1), 10);
+        // Ensure tiles is exactly 1, 2, 4, or 8
+        const selectedTiles = [1, 2, 4, 8].includes(parseInt(tiles)) ? parseInt(tiles) : 1;
         const selectedFilename = filename || 'received.txt';
 
-        console.log(`Encoding ${text.length} chars, fps=${selectedFps}, encrypted=${!!password}, filename=${selectedFilename}`);
+        // Scale the drop packet size based on the structural grid density
+        // A 1x tile can easily hold 600 bytes. An 8x tile squashes the barcode to 1/4 the screen width,
+        // so to keep the dots visually gargantuan, we clamp the byte size respectively.
+        let dynamicChunkSize = 600;
+        if (selectedTiles === 2) dynamicChunkSize = 350;
+        if (selectedTiles === 4) dynamicChunkSize = 200;
+        if (selectedTiles === 8) dynamicChunkSize = 100;
 
         // Pipeline: compress → (encrypt) → chunk → QR frames
-        const frames = await encode(text, password || null, selectedFilename);
-        console.log(`Generated ${frames.length} frames`);
+        const frames = await encode(text, password || null, selectedFilename, dynamicChunkSize, missingFrames);
+        console.log(`Generated ${frames.length} drops (dynamic size: ${dynamicChunkSize} bytes)`);
 
         // Generate video
-        const videoPath = await generateVideo(frames, { fps: selectedFps });
+        const videoPath = await generateVideo(frames, { fps: selectedFps, tiles: selectedTiles });
         console.log(`Video created: ${videoPath}`);
 
         // Stream the file back and clean up

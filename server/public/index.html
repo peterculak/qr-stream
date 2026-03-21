@@ -468,6 +468,22 @@
                         <label for="password-input">> SECURE_KEY</label>
                         <input type="password" id="password-input" placeholder="_leave_empty_for_public_broadcast_" />
                     </div>
+                    <div class="field">
+                        <label for="tiles-select">> MULTIPLIER (TILES)</label>
+                        <select id="tiles-select">
+                            <option value="1" selected>1x (Standard)</option>
+                            <option value="2">2x (Dual Grid)</option>
+                            <option value="4">4x (Quad Grid)</option>
+                            <option value="8">8x (Octa Grid)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="field">
+                        <label for="missing-input">> RESCUE_DROPPED_FRAMES (OPTIONAL)</label>
+                        <input type="text" id="missing-input" placeholder="e.g. 45, 82, 112" />
+                    </div>
                 </div>
 
                 <button id="generate-btn">> GENERATE_VIDEO_STREAM</button>
@@ -496,6 +512,8 @@
         const textEl = document.getElementById('text-input');
         const passEl = document.getElementById('password-input');
         const fpsEl = document.getElementById('fps-select');
+        const tilesEl = document.getElementById('tiles-select');
+        const missingEl = document.getElementById('missing-input');
         const filenameEl = document.getElementById('filename-input');
         const fileInput = document.getElementById('file-input');
         const dropZone = document.getElementById('drop-zone');
@@ -611,7 +629,14 @@
             const text = textEl.value.trim();
             const password = passEl.value;
             const fps = parseInt(fpsEl.value);
+            const tiles = parseInt(tilesEl.value);
             const filename = filenameEl.value.trim() || 'data.bin';
+
+            const missingText = missingEl.value.trim();
+            let missingFrames = [];
+            if (missingText) {
+                missingFrames = missingText.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+            }
 
             if (!text) return setStatus('[ERR] NO_PAYLOAD_PROVIDED', 'error');
 
@@ -622,7 +647,7 @@
                 const resp = await fetch('/api/encode', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text, password, fps, filename }),
+                    body: JSON.stringify({ text, password, fps, filename, tiles, missingFrames }),
                 });
 
                 if (!resp.ok) {

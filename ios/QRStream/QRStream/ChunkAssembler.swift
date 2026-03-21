@@ -15,6 +15,17 @@ class ChunkAssembler: ObservableObject {
         guard let total = totalChunks else { return false }
         return chunks.count >= total
     }
+    
+    var missingIndices: [Int] {
+        guard let total = totalChunks, !isComplete else { return [] }
+        var missing = [Int]()
+        for i in 0..<total {
+            if chunks[i] == nil {
+                missing.append(i)
+            }
+        }
+        return missing
+    }
 
     /// Bytes received so far
     var bytesReceived: Int { totalBytesReceived }

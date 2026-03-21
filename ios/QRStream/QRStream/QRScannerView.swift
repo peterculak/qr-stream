@@ -18,7 +18,7 @@ class QRScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsD
 
     private let captureSession = AVCaptureSession()
     private var previewLayer: AVCaptureVideoPreviewLayer?
-    private var lastScannedCode: String?
+    private var recentScannedCodes: [String] = []
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -40,6 +40,29 @@ class QRScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsD
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         previewLayer?.frame = view.bounds
+        updatePreviewOrientation()
+    }
+
+    private func updatePreviewOrientation() {
+        guard let connection = previewLayer?.connection,
+              connection.isVideoOrientationSupported else { return }
+        
+        let windowScene = view.window?.windowScene
+        let interfaceOrientation = windowScene?.interfaceOrientation ?? .portrait
+        
+        let videoOrientation: AVCaptureVideoOrientation
+        switch interfaceOrientation {
+        case .landscapeLeft:
+            videoOrientation = .landscapeLeft
+        case .landscapeRight:
+            videoOrientation = .landscapeRight
+        case .portraitUpsideDown:
+            videoOrientation = .portraitUpsideDown
+        default:
+            videoOrientation = .portrait
+        }
+        
+        connection.videoOrientation = videoOrientation
     }
 
     private func setupCamera() {
@@ -71,15 +94,17 @@ class QRScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsD
         didOutput metadataObjects: [AVMetadataObject],
         from connection: AVCaptureConnection
     ) {
-        guard let metadata = metadataObjects.first as? AVMetadataMachineReadableCodeObject,
-              let code = metadata.stringValue else {
-            return
+        let codes = metadataObjects.compactMap { ($0 as? AVMetadataMachineReadableCodeObject)?.stringValue }
+        
+        for code in codes {
+            // Debounce: keep a rolling 20-code history to avoid spamming the parser
+            if !recentScannedCodes.contains(code) {
+                recentScannedCodes.append(code)
+                if recentScannedCodes.count > 40 {
+                    recentScannedCodes.removeFirst()
+                }
+                onCodeScanned?(code)
+            }
         }
-
-        // Debounce: skip if same code as last scan
-        if code == lastScannedCode { return }
-        lastScannedCode = code
-
-        onCodeScanned?(code)
     }
 }
