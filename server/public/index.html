@@ -424,6 +424,12 @@
     </header>
 
     <div class="layout">
+        <!-- Global Drag Overlay -->
+        <div id="global-drag-overlay"
+            style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,170,0,0.1); z-index:9999; border:6px dashed #0a0; box-sizing:border-box; pointer-events:all; justify-content:center; align-items:center;">
+            <p style="font-size:2rem; font-weight:bold; color:#0a0; background:#000; padding:1rem;">[ DROP TO REPLACE
+                FILE ]</p>
+        </div>
         <!-- Left: Input -->
         <div class="card">
             <div class="input-zone" id="input-zone">
@@ -542,23 +548,27 @@
             }
         });
 
+        const globalDragOverlay = document.getElementById('global-drag-overlay');
+
         // File upload
         fileInput.addEventListener('change', (e) => {
             if (e.target.files.length) loadFile(e.target.files[0]);
         });
 
-        dropZone.addEventListener('dragover', (e) => {
+        document.addEventListener('dragover', (e) => {
             e.preventDefault();
-            dropZone.classList.add('drag-over');
+            globalDragOverlay.style.display = 'flex';
         });
 
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('drag-over');
+        document.addEventListener('dragleave', (e) => {
+            if (e.target === globalDragOverlay) {
+                globalDragOverlay.style.display = 'none';
+            }
         });
 
-        dropZone.addEventListener('drop', (e) => {
+        document.addEventListener('drop', (e) => {
             e.preventDefault();
-            dropZone.classList.remove('drag-over');
+            globalDragOverlay.style.display = 'none';
             if (e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]);
         });
 
