@@ -488,7 +488,15 @@
                 <div class="row">
                     <div class="field">
                         <label for="chunk-input">> PAYLOAD_PER_TILE (BYTES)</label>
-                        <input type="number" id="chunk-input" value="1000" min="100" max="3000" />
+                        <select id="chunk-input">
+                            <option value="200">200 (Safe, Large Dots)</option>
+                            <option value="400">400</option>
+                            <option value="600">600 (Standard)</option>
+                            <option value="800">800</option>
+                            <option value="1000" selected>1000 (Fast)</option>
+                            <option value="1500">1500 (Extreme)</option>
+                            <option value="2000">2000 (Ludicrous)</option>
+                        </select>
                     </div>
                     <div class="field">
                         <label for="missing-input">> RESCUE_DROPPED_FRAMES</label>
