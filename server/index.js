@@ -12,7 +12,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.post('/api/encode', async (req, res) => {
     try {
-        const { text, password, fps, filename, tiles, missingFrames } = req.body;
+        const { text, password, fps, filename, tiles, missingFrames, chunkSize } = req.body;
 
         if (!text) {
             return res.status(400).json({ error: 'text is required' });
@@ -23,13 +23,10 @@ app.post('/api/encode', async (req, res) => {
         const selectedTiles = [1, 2, 4, 8].includes(parseInt(tiles)) ? parseInt(tiles) : 1;
         const selectedFilename = filename || 'received.txt';
 
-        // Scale the drop packet size based on the structural grid density
-        // A 1x tile can easily hold 600 bytes. An 8x tile squashes the barcode to 1/4 the screen width,
-        // so to keep the dots visually gargantuan, we clamp the byte size respectively.
-        let dynamicChunkSize = 600;
-        if (selectedTiles === 2) dynamicChunkSize = 350;
-        if (selectedTiles === 4) dynamicChunkSize = 200;
-        if (selectedTiles === 8) dynamicChunkSize = 100;
+        // The user explicitly demanded absolute maximum physical density multipliers.
+        // If they specify 1500 bytes on an 8x Grid, the backend will compress and mathematically
+        // force 12,000 bytes onto the UI frame regardless of pixel-squish degradation.
+        const dynamicChunkSize = parseInt(chunkSize) || 1500;
 
         // Pipeline: compress → (encrypt) → chunk → QR frames
         const frames = await encode(text, password || null, selectedFilename, dynamicChunkSize, missingFrames);
