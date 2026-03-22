@@ -34,13 +34,8 @@ struct ContentView: View {
     @State private var scanProgress: CGFloat = 0.0
     @State private var errorMessage = ""
     @State private var receivedHtml: String = "" // New: For Single-QR/Fast-Deploy apps
-    
-    @State private var errorMessage = ""
-    @State private var receivedHtml: String = "" // New: For Single-QR/Fast-Deploy apps
-    
     @StateObject private var logger = DebugLogger.shared
     @State private var showLogs = false
-    
 
     private var theme: AppTheme { themeManager.currentTheme }
 
