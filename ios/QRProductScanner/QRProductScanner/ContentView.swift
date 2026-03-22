@@ -35,20 +35,12 @@ struct ContentView: View {
     @State private var errorMessage = ""
     @State private var receivedHtml: String = "" // New: For Single-QR/Fast-Deploy apps
     
-    @StateObject private var bufferManager = FrameBufferManager()
-    @StateObject private var assembler = ChunkAssembler()
+    @State private var errorMessage = ""
+    @State private var receivedHtml: String = "" // New: For Single-QR/Fast-Deploy apps
+    
     @StateObject private var logger = DebugLogger.shared
-    private let decoder = StreamDecoder()
-    @State private var isAnalyzing = false
     @State private var showLogs = false
     
-    // Timer to proactively analyze the buffer while a stream is in progress
-    // Accelerates when near completion
-    private var timerInterval: Double {
-        (assembler.progress > 0.8 && !assembler.isComplete) ? 0.4 : 0.8
-    }
-    let analysisTimer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
-    @State private var lastAnalysisTime: Date = .distantPast
 
     private var theme: AppTheme { themeManager.currentTheme }
 
@@ -58,9 +50,6 @@ struct ContentView: View {
             CameraScannerView(
                 onCodeScanned: { scannedString in
                     handleScannedCode(scannedString)
-                },
-                onFrameCaptured: { sampleBuffer in
-                    bufferManager.addFrame(sampleBuffer)
                 },
                 appHtml: scanState == .webApp ? receivedHtml : nil
             )
@@ -87,8 +76,6 @@ struct ContentView: View {
                         withAnimation(.spring(response: 0.4)) {
                             scanState = .scanning
                             scannedProduct = nil
-                            assembler.reset()
-                            bufferManager.clear()
                         }
                     }
 
@@ -129,7 +116,7 @@ struct ContentView: View {
             }
 
             // MARK: - Processing Overlay
-            if isProcessing || (assembler.receivedCount > 0 && !assembler.isComplete) {
+            if isProcessing {
                 ZStack {
                     // Semi-transparent background dim
                     Color.black.opacity(0.3)
@@ -144,11 +131,11 @@ struct ContentView: View {
                             
                             RoundedRectangle(cornerRadius: 2)
                                 .fill(theme.accentColor)
-                                .frame(width: 200 * (assembler.receivedCount > 0 ? CGFloat(assembler.progress) : scanProgress), height: 4)
+                                .frame(width: 200 * scanProgress, height: 4)
                                 .shadow(color: theme.accentColor.opacity(0.5), radius: 4)
                         }
                         
-                        Text(assembler.receivedCount > 0 ? "STREAMING (\(assembler.receivedCount)/\(assembler.totalChunks ?? 0))" : "DECODING")
+                        Text("DECODING")
                             .font(.system(size: 9, weight: .bold, design: .monospaced))
                             .foregroundColor(theme.accentColor)
                             .tracking(2)
@@ -249,15 +236,6 @@ struct ContentView: View {
                 .zIndex(30)
             }
         }
-        .onReceive(analysisTimer) { _ in
-            let now = Date()
-            if assembler.receivedCount > 0 && !assembler.isComplete && scanState == .scanning {
-                if now.timeIntervalSince(lastAnalysisTime) >= timerInterval {
-                    lastAnalysisTime = now
-                    analyzeBufferBackground()
-                }
-            }
-        }
         .statusBarHidden(true)
     }
 
@@ -282,28 +260,12 @@ struct ContentView: View {
             }
         }
 
-        // 2. Try as a Stream Chunk
+        // 2. Try as a Stream Chunk (Deprecated in this branch)
+        /*
         if assembler.addChunk(code) {
-            logger.log("LIVE: Found chunk (\(assembler.receivedCount)/\(assembler.totalChunks ?? 0))")
-            // Snappy detection pulse
-            withAnimation(.spring(response: 0.2)) {
-                isScanSuccess = true
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                isScanSuccess = false
-            }
-
-            if assembler.isComplete {
-                let fullData = assembler.assemble()
-                processFinalData(fullData)
-                assembler.reset()
-                bufferManager.clear()
-            } else {
-                // Start filling gaps from buffer in background
-                analyzeBufferBackground()
-            }
-            return
+           ...
         }
+        */
 
         // Try decoding as base64-encoded binary ProductQR data
         if let binaryData = Data(base64Encoded: code) {
@@ -400,51 +362,6 @@ struct ContentView: View {
         }
     }
 
-    private func processFinalData(_ data: Data) {
-        logger.log("STREAM: Assembly complete. Decoding product...")
-        do {
-            let product = try ProductQRCodec.decode(from: data)
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                scannedProduct = product
-                lastScannedProduct = product
-                scanState = .loaded
-                isProcessing = false
-                isScanSuccess = false
-            }
-        } catch {
-            showErrorToast("Corrupted stream: \(error.localizedDescription)")
-        }
-    }
-
-    private func analyzeBufferBackground() {
-        // Guard against multiple overlapping analysis tasks
-        guard !isAnalyzing && !isProcessing else { return }
-        
-        let frames = bufferManager.getAllFrames()
-        guard !frames.isEmpty else { return }
-        
-        isAnalyzing = true
-        
-        Task.detached(priority: .utility) {
-            let result = decoder.decodeBatch(frames: frames)
-            let codes = result.codes
-            
-            if !codes.isEmpty {
-                await MainActor.run {
-                    self.logger.log("BUFFER: Analyst found \(codes.count) codes in \(result.sampledCount) frames")
-                }
-            }
-            
-            for code in codes {
-                await MainActor.run {
-                    self.handleScannedCode(code)
-                }
-            }
-            await MainActor.run {
-                self.isAnalyzing = false
-            }
-        }
-    }
 
     private func showErrorToast(_ message: String) {
         errorMessage = message

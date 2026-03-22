@@ -6,13 +6,11 @@ import WebKit
 /// Reports the raw string content of detected QR codes.
 struct CameraScannerView: UIViewControllerRepresentable {
     let onCodeScanned: (String) -> Void
-    let onFrameCaptured: (CMSampleBuffer) -> Void
     var appHtml: String? // Pass broadcasted HTML app directly
 
     func makeUIViewController(context: Context) -> CameraScannerViewController {
         let vc = CameraScannerViewController()
         vc.onCodeScanned = onCodeScanned
-        vc.onFrameCaptured = onFrameCaptured
         return vc
     }
 
@@ -21,9 +19,8 @@ struct CameraScannerView: UIViewControllerRepresentable {
     }
 }
 
-class CameraScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsDelegate, AVCaptureVideoDataOutputSampleBufferDelegate {
+class CameraScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
     var onCodeScanned: ((String) -> Void)?
-    var onFrameCaptured: ((CMSampleBuffer) -> Void)?
     
     var appHtml: String? {
         didSet {
@@ -172,15 +169,6 @@ class CameraScannerViewController: UIViewController, AVCaptureMetadataOutputObje
         output.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
         output.metadataObjectTypes = [.qr]
 
-        // RAW VIDEO OUTPUT for buffering
-        let videoOutput = AVCaptureVideoDataOutput()
-        videoOutput.alwaysDiscardsLateVideoFrames = true
-        videoOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "camera.frame.processing", qos: .userInitiated))
-        
-        if captureSession.canAddOutput(videoOutput) {
-            captureSession.addOutput(videoOutput)
-        }
-
         let preview = AVCaptureVideoPreviewLayer(session: captureSession)
         preview.videoGravity = .resizeAspectFill
         preview.frame = view.bounds
@@ -217,13 +205,17 @@ class CameraScannerViewController: UIViewController, AVCaptureMetadataOutputObje
         }
     }
 
-    // MARK: - AVCaptureVideoDataOutputSampleBufferDelegate
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            if let session = self?.captureSession, !session.isRunning {
+                session.startRunning()
+            }
+        }
+    }
 
-    func captureOutput(
-        _ output: AVCaptureOutput,
-        didOutput sampleBuffer: CMSampleBuffer,
-        from connection: AVCaptureConnection
-    ) {
-        onFrameCaptured?(sampleBuffer)
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        captureSession.stopRunning()
     }
 }
