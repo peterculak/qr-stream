@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QR Stream [ ENCODE ]</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -323,6 +324,18 @@
             box-shadow: none;
         }
 
+        button.needs-sync {
+            border-color: #fa0;
+            color: #fa0;
+            animation: pulse-sync 1.5s infinite;
+        }
+
+        @keyframes pulse-sync {
+            0% { box-shadow: 0 0 5px rgba(255, 170, 0, 0.2); border-color: #a70; }
+            50% { box-shadow: 0 0 15px rgba(255, 170, 0, 0.6); border-color: #fa0; }
+            100% { box-shadow: 0 0 5px rgba(255, 170, 0, 0.2); border-color: #a70; }
+        }
+
         .status {
             text-align: center;
             margin-top: 0.5rem;
@@ -362,6 +375,203 @@
             border: 1px solid #0f0;
             background: #000;
             object-fit: contain;
+        }
+        
+        .player-card.live-active {
+            padding: 0;
+            border-style: solid;
+        }
+        
+        #live-canvas-container {
+            width: 100%;
+            height: 100%;
+            display: none;
+            background: #000;
+            overflow: hidden;
+            position: absolute;
+            inset: 0;
+        }
+        
+        #live-grid {
+            display: grid;
+            width: 100%;
+            height: 100%;
+            gap: 2px;
+            padding: 0;
+            background: #fff; /* White background for better QR contrast */
+            place-content: stretch;
+        }
+
+        #live-counter {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: #000;
+            color: #0f0;
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border: 1px solid #0f0;
+            z-index: 100;
+            display: none;
+            font-family: inherit;
+        }
+
+        #fullscreen-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 5px 10px;
+            cursor: pointer;
+            z-index: 100;
+            display: none;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        #fullscreen-btn:hover {
+            background: #0f0;
+            color: #000;
+        }
+        
+        .qr-cell {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        
+        .qr-cell img {
+            width: 100%;
+            height: 100%;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            aspect-ratio: 1 / 1;
+            image-rendering: pixelated;
+        }
+
+        /* Custom Toggle Switch for Live Mode */
+        .mode-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(0, 255, 0, 0.05);
+            border: 1px solid #0a0;
+            padding: 0.8rem 1rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .mode-toggle:hover {
+            border-color: #0f0;
+            background: rgba(0, 255, 0, 0.1);
+        }
+
+        .mode-toggle.active {
+            border-color: #0f0;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.2);
+        }
+
+        .toggle-label {
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: #0f0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #040;
+            transition: .3s;
+            border: 1px solid #0a0;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 12px;
+            width: 12px;
+            left: 3px;
+            bottom: 3px;
+            background-color: #0f0;
+            transition: .3s;
+        }
+
+        input:checked + .slider {
+            background-color: #0a0;
+            border-color: #0f0;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(20px);
+            background-color: #fff;
+            box-shadow: 0 0 10px #0f0, 0 0 20px #0f0;
+        }
+        
+        /* Segmented Selector for Loops */
+        .segmented-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2px;
+            background: #0a0;
+            border: 1px solid #0a0;
+            margin-bottom: 0.8rem;
+        }
+
+        .segment-btn {
+            background: #000;
+            border: none;
+            color: #0a0;
+            padding: 0.7rem 0.2rem;
+            font-size: 0.65rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-family: inherit;
+            transition: all 0.1s;
+        }
+
+        .segment-btn:hover {
+            color: #0f0;
+            background: rgba(0, 255, 0, 0.1);
+        }
+
+        .segment-btn.active {
+            background: #0f0;
+            color: #000;
+            font-weight: bold;
+        }
+        
+        input[type="number"],
+        input[type="text"],
+        select {
+            appearance: none;
+            -webkit-appearance: none;
         }
 
         .player-controls {
@@ -460,11 +670,16 @@
                     <div class="field">
                         <label for="fps-select">> TRANSFER_RATE (FPS)</label>
                         <select id="fps-select">
-                            <option value="1">1 fps</option>
-                            <option value="2">2 fps</option>
-                            <option value="3" selected>3 fps</option>
-                            <option value="5">5 fps</option>
-                            <option value="8">8 fps</option>
+                            <option value="1">1 FPS</option>
+                            <option value="3">3 FPS</option>
+                            <option value="5">5 FPS</option>
+                            <option value="8" selected>8 FPS</option>
+                            <option value="10">10 FPS</option>
+                            <option value="12">12 FPS</option>
+                            <option value="15">15 FPS</option>
+                            <option value="20">20 FPS</option>
+                            <option value="24">24 FPS</option>
+                            <option value="30">30 FPS (ULTRA)</option>
                         </select>
                     </div>
                 </div>
@@ -499,12 +714,33 @@
                         </select>
                     </div>
                     <div class="field">
-                        <label for="missing-input">> RESCUE_DROPPED_FRAMES</label>
+                        <label for="loops-input">> REPETITIONS (LOOPS)</label>
+                        <div class="segmented-row" id="loops-segmented">
+                            <button class="segment-btn" data-value="1">1 loop</button>
+                            <button class="segment-btn active" data-value="3">3 loops</button>
+                            <button class="segment-btn" data-value="5">5 loops</button>
+                            <button class="segment-btn" data-value="100">∞</button>
+                        </div>
+                        <input type="hidden" id="loops-input" value="3" />
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="field">
+                        <label for="missing-input">> RESCUE_DROPPED_FRAMES (VIDEO ONLY)</label>
                         <input type="text" id="missing-input" placeholder="e.g. 45, 82, 112" />
                     </div>
                 </div>
 
-                <button id="generate-btn">> GENERATE_VIDEO_STREAM</button>
+                <div class="mode-toggle" id="mode-toggle-btn">
+                    <span class="toggle-label">[ LIVE_STREAM_MODE ]</span>
+                    <label class="switch">
+                        <input type="checkbox" id="live-mode" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <button id="generate-btn">> GENERATE_STREAM</button>
                 <div class="status" id="status"></div>
             </div>
         </div>
@@ -516,6 +752,11 @@
                 <p>AWAITING_SIGNAL...</p>
             </div>
             <video id="qr-video" loop muted playsinline style="display:none"></video>
+            <div id="live-canvas-container">
+                <div id="live-counter"></div>
+                <button id="fullscreen-btn" title="Fullscreen Mode">[ ⛶ FULLSCREEN ]</button>
+                <div id="live-grid"></div>
+            </div>
             <div class="player-controls" id="player-controls" style="display:none">
                 <button id="play-btn" class="play-btn">> PLAY_STREAM</button>
                 <button id="fullscreen-btn" class="secondary-btn">[ FULLSCREEN ]</button>
@@ -548,6 +789,224 @@
         const playerEmpty = document.getElementById('player-empty');
         const playerControls = document.getElementById('player-controls');
         const playerHint = document.getElementById('player-hint');
+        const loopsEl = document.getElementById('loops-input');
+
+        const liveModeEl = document.getElementById('live-mode');
+        const modeToggleBtn = document.getElementById('mode-toggle-btn');
+        const liveContainer = document.getElementById('live-canvas-container');
+        const liveGrid = document.getElementById('live-grid');
+        
+        // Sync active class on toggle
+        function updateToggleState() {
+            if (liveModeEl.checked) modeToggleBtn.classList.add('active');
+            else modeToggleBtn.classList.remove('active');
+        }
+        liveModeEl.addEventListener('change', updateToggleState);
+        modeToggleBtn.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'INPUT' && e.target.className !== 'slider') {
+                liveModeEl.click();
+            }
+        });
+        updateToggleState();
+
+        // Segments logic
+        const loopsSegmented = document.getElementById('loops-segmented');
+        const segBtns = loopsSegmented.querySelectorAll('.segment-btn');
+        segBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                segBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                loopsEl.value = btn.dataset.value;
+            });
+        });
+
+        // Live FPS adjustment
+        fpsEl.addEventListener('change', () => {
+            const newFps = parseInt(fpsEl.value);
+            if (engine.timer) {
+                engine.fps = newFps;
+                engine.play();
+            }
+        });
+
+        // Live Tiles adjustment
+        tilesEl.addEventListener('change', () => {
+            const newTiles = parseInt(tilesEl.value);
+            if (engine.timer) {
+                engine.tiles = newTiles;
+                engine.configureGrid();
+                engine.currentIndex = 0; // Reset to start for clean loop
+            }
+        });
+
+        // Sync Required logic (for non-live settings)
+        function markNeedsSync() {
+            if (engine.timer || video.src) {
+                btn.classList.add('needs-sync');
+                btn.innerHTML = '> GENERATE_STREAM (SYNC REQUIRED)';
+            }
+        }
+
+        textEl.addEventListener('input', markNeedsSync);
+        passEl.addEventListener('input', markNeedsSync);
+        chunkEl.addEventListener('change', markNeedsSync);
+        filenameEl.addEventListener('input', markNeedsSync);
+
+        // Fullscreen Logic
+        const fsBtn = document.getElementById('fullscreen-btn');
+        fsBtn.addEventListener('click', () => {
+            const container = document.getElementById('live-canvas-container');
+            if (!document.fullscreenElement) {
+                container.requestFullscreen().catch(err => {
+                    console.error(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        });
+
+        // QR Stream Engine for Live Mode
+        class QRStreamEngine {
+            constructor() {
+                this.frames = [];
+                this.timer = null;
+                this.currentIndex = 0;
+                this.fps = 3;
+                this.tiles = 1;
+                this.eventSource = null;
+                this.totalFrames = 0;
+                this.isPaused = false;
+            }
+
+            configureGrid() {
+                let cols = 1, rows = 1;
+                if (this.tiles === 2) { cols = 2; rows = 1; }
+                else if (this.tiles === 4) { cols = 2; rows = 2; }
+                else if (this.tiles === 8) { cols = 4; rows = 2; }
+                liveGrid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+                liveGrid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+                
+                // Pre-create image elements for reuse
+                liveGrid.innerHTML = '';
+                for (let i = 0; i < this.tiles; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'qr-cell';
+                    const img = document.createElement('img');
+                    cell.appendChild(img);
+                    liveGrid.appendChild(cell);
+                }
+            }
+
+            async start(params) {
+                this.stop();
+                this.frames = [];
+                this.currentIndex = 0;
+                this.fps = params.fps || 3;
+                this.tiles = params.tiles || 1;
+                this.isPaused = false;
+                
+                this.configureGrid();
+                document.getElementById('live-counter').style.display = 'block';
+                document.getElementById('fullscreen-btn').style.display = 'block';
+                document.querySelector('.player-card').classList.add('live-active');
+
+                try {
+                    // Step 1: Initialize session (handles large payloads via POST)
+                    const initResp = await fetch('/api/stream-init', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(params)
+                    });
+                    
+                    if (!initResp.ok) throw new Error('Session initialization failed');
+                    const { sid } = await initResp.json();
+
+                    // Step 2: Connect to the stream using the session ID
+                    this.eventSource = new EventSource(`/api/stream?sid=${sid}`);
+
+                    this.eventSource.addEventListener('init', (e) => {
+                        const data = JSON.parse(e.data);
+                        this.totalFrames = data.totalFrames;
+                        console.log(`Stream Init: ${this.totalFrames} frames`);
+                    });
+
+                    this.eventSource.addEventListener('frame', (e) => {
+                        this.frames.push(e.data);
+                        if (this.frames.length >= this.tiles && !this.timer) {
+                            this.play();
+                        }
+                    });
+
+                    this.eventSource.addEventListener('end', () => {
+                        console.log("Stream delivery complete");
+                        this.eventSource.close();
+                    });
+
+                    this.eventSource.addEventListener('error', (e) => {
+                        console.error("Stream Error", e);
+                        this.eventSource.close();
+                        setStatus(`[ERR] STREAM_LOST`, 'error');
+                    });
+                } catch (err) {
+                    console.error("Init Error", err);
+                    setStatus(`[ERR] ${err.message}`, 'error');
+                }
+            }
+
+            stop() {
+                if (this.timer) clearTimeout(this.timer);
+                this.timer = null;
+                if (this.eventSource) this.eventSource.close();
+                liveGrid.innerHTML = '';
+                document.getElementById('live-counter').style.display = 'none';
+                document.getElementById('fullscreen-btn').style.display = 'none';
+                document.querySelector('.player-card').classList.remove('live-active');
+            }
+
+            play() {
+                if (this.timer) clearTimeout(this.timer);
+                this.tick(); // Start immediately
+            }
+
+            tick() {
+                if (!this.isPaused && this.frames.length >= this.tiles) {
+                    const tileGroupsCount = Math.ceil(this.frames.length / this.tiles);
+                    if (this.currentIndex >= tileGroupsCount) {
+                        this.currentIndex = 0;
+                    }
+
+                    const startIdx = this.currentIndex * this.tiles;
+                    const group = this.frames.slice(startIdx, startIdx + this.tiles);
+                    
+                    this.render(group);
+                    
+                    document.getElementById('live-counter').textContent = 
+                        `[ SIGNAL_MONITOR ] FRAME: ${this.currentIndex + 1}/${tileGroupsCount} | FPS: ${this.fps}`;
+
+                    this.currentIndex++;
+                }
+                
+                this.timer = setTimeout(() => this.tick(), 1000 / this.fps);
+            }
+
+            render(chunks) {
+                const cells = liveGrid.querySelectorAll('.qr-cell img');
+                chunks.forEach((data, i) => {
+                    if (cells[i]) {
+                        const qr = qrcode(0, 'M');
+                        qr.addData(data);
+                        qr.make();
+                        // module size 5 is plenty high-res with pixelated rendering
+                        const tag = qr.createImgTag(5); 
+                        // Extract src from generated tag
+                        const src = tag.match(/src="([^"]+)"/)[1];
+                        cells[i].src = src;
+                    }
+                });
+            }
+        }
+
+        const engine = new QRStreamEngine();
 
         // Animated expand/collapse on focus
         textEl.addEventListener('focus', () => {
@@ -653,6 +1112,8 @@
                 reader.readAsDataURL(file);
             }
         }
+        
+        // ... rest of event listeners ...
 
         // Generate
         btn.addEventListener('click', async () => {
@@ -660,52 +1121,80 @@
             const password = passEl.value;
             const fps = parseInt(fpsEl.value);
             const tiles = parseInt(tilesEl.value);
-            const chunkSize = parseInt(chunkEl.value) || 1500;
+            const chunkSize = parseInt(chunkEl.value) || 1000;
             const filename = filenameEl.value.trim() || 'data.bin';
-
-            const missingText = missingEl.value.trim();
-            let missingFrames = [];
-            if (missingText) {
-                missingFrames = missingText.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
-            }
+            const loops = parseInt(loopsEl.value) || 3;
 
             if (!text) return setStatus('[ERR] NO_PAYLOAD_PROVIDED', 'error');
 
-            btn.disabled = true;
-            setStatus('<span class="spinner"></span> COMPILING_STREAM...');
+            // Reset Sync State
+            btn.classList.remove('needs-sync');
+            btn.innerHTML = '> GENERATE_STREAM';
 
-            try {
-                const resp = await fetch('/api/encode', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text, password, fps, chunkSize, filename, tiles, missingFrames }),
-                });
+            // Reset UI
+            video.src = '';
+            video.style.display = 'none';
+            liveContainer.style.display = 'none';
+            playerControls.style.display = 'none';
+            playerHint.style.display = 'none';
+            playerEmpty.style.display = 'block';
+            engine.stop();
 
-                if (!resp.ok) {
-                    const err = await resp.json();
-                    throw new Error(err.error || 'SERVER_FAULT');
-                }
-
-                const blob = await resp.blob();
-                const url = URL.createObjectURL(blob);
-
-                video.src = url;
-                video.style.display = 'block';
+            if (liveModeEl.checked) {
+                // LIVE MODE (SSE)
+                setStatus('[OK] INITIALIZING_LIVE_STREAM...');
                 playerEmpty.style.display = 'none';
+                liveContainer.style.display = 'block';
                 playerControls.style.display = 'flex';
                 playerHint.style.display = 'block';
-                playBtn.textContent = '> PLAY_STREAM';
+                playBtn.textContent = '|| PAUSE_STREAM';
+                
+                engine.start({ text, password, fps, tiles, chunkSize, filename, loops });
+                setStatus('[OK] STREAMING_LIVE', 'success');
+            } else {
+                // VIDEO MODE (Classic)
+                btn.disabled = true;
+                setStatus('<span class="spinner"></span> COMPILING_VIDEO...');
 
-                setStatus('[OK] SIGNAL_READY', 'success');
-            } catch (err) {
-                setStatus(`[ERR] ${err.message}`, 'error');
-            } finally {
-                btn.disabled = false;
+                try {
+                    const resp = await fetch('/api/encode', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text, password, fps, chunkSize, filename, tiles, loops }),
+                    });
+
+                    if (!resp.ok) {
+                        const err = await resp.json();
+                        throw new Error(err.error || 'SERVER_FAULT');
+                    }
+
+                    const blob = await resp.blob();
+                    const url = URL.createObjectURL(blob);
+
+                    video.src = url;
+                    video.style.display = 'block';
+                    playerEmpty.style.display = 'none';
+                    playerControls.style.display = 'flex';
+                    playerHint.style.display = 'block';
+                    playBtn.textContent = '> PLAY_STREAM';
+
+                    setStatus('[OK] SIGNAL_READY', 'success');
+                } catch (err) {
+                    setStatus(`[ERR] ${err.message}`, 'error');
+                } finally {
+                    btn.disabled = false;
+                }
             }
         });
 
         // Play/Pause
         playBtn.addEventListener('click', () => {
+            if (liveModeEl.checked) {
+                engine.isPaused = !engine.isPaused;
+                playBtn.textContent = engine.isPaused ? '> RESUME_STREAM' : '|| PAUSE_STREAM';
+                return;
+            }
+            
             if (video.paused) {
                 video.play();
                 playBtn.textContent = '|| PAUSE_STREAM';

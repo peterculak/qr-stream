@@ -16,6 +16,11 @@
 		B1000007 /* ScanProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2000007 /* ScanProgressView.swift */; };
 		B1000008 /* BottomMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2000008 /* BottomMenuView.swift */; };
 		B1000009 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B2000009 /* Assets.xcassets */; };
+		B100000A /* FrameBufferManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B200000B /* FrameBufferManager.swift */; };
+		B100000B /* StreamDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B200000C /* StreamDecoder.swift */; };
+		B100000C /* ChunkAssembler.swift in Sources */ = {isa = PBXBuildFile; fileRef = B200000D /* ChunkAssembler.swift */; };
+		B100000C /* ChunkAssembler.swift in Sources */ = {isa = PBXBuildFile; fileRef = B200000D /* ChunkAssembler.swift */; };
+		B100000D /* DebugLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = B200000E /* DebugLogger.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -29,6 +34,10 @@
 		B2000008 /* BottomMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomMenuView.swift; sourceTree = "<group>"; };
 		B2000009 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B200000A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B200000B /* FrameBufferManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameBufferManager.swift; sourceTree = "<group>"; };
+		B200000C /* StreamDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamDecoder.swift; sourceTree = "<group>"; };
+		B200000D /* ChunkAssembler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChunkAssembler.swift; sourceTree = "<group>"; };
+		B200000E /* DebugLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLogger.swift; sourceTree = "<group>"; };
 		B3000001 /* QRProductScanner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QRProductScanner.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -64,6 +73,10 @@
 				B2000008 /* BottomMenuView.swift */,
 				B2000009 /* Assets.xcassets */,
 				B200000A /* Info.plist */,
+				B200000B /* FrameBufferManager.swift */,
+				B200000C /* StreamDecoder.swift */,
+				B200000D /* ChunkAssembler.swift */,
+				B200000E /* DebugLogger.swift */,
 			);
 			path = QRProductScanner;
 			sourceTree = "<group>";
@@ -148,6 +161,10 @@
 				B1000006 /* ProductCardView.swift in Sources */,
 				B1000007 /* ScanProgressView.swift in Sources */,
 				B1000008 /* BottomMenuView.swift in Sources */,
+				B100000A /* FrameBufferManager.swift in Sources */,
+				B100000B /* StreamDecoder.swift in Sources */,
+				B100000C /* ChunkAssembler.swift in Sources */,
+				B100000D /* DebugLogger.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
