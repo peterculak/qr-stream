@@ -52,6 +52,7 @@ class CameraScannerViewController: UIViewController, AVCaptureMetadataOutputObje
         wv.backgroundColor = .clear
         wv.scrollView.backgroundColor = .clear
         wv.scrollView.isScrollEnabled = false
+        wv.scrollView.contentInsetAdjustmentBehavior = .never
         wv.isHidden = true
         wv.alpha = 0
         
@@ -97,6 +98,7 @@ class CameraScannerViewController: UIViewController, AVCaptureMetadataOutputObje
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         previewLayer?.frame = view.bounds
+        webView?.frame = view.bounds
         updatePreviewOrientation()
     }
 
