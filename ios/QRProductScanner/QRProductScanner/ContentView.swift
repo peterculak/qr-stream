@@ -12,11 +12,13 @@ struct ContentView: View {
     enum ScanState: Equatable {
         case scanning
         case loaded
+        case webApp  // New: For Single-QR/Fast-Deploy apps
 
         static func == (lhs: ScanState, rhs: ScanState) -> Bool {
             switch (lhs, rhs) {
             case (.scanning, .scanning): return true
             case (.loaded, .loaded): return true
+            case (.webApp, .webApp): return true
             default: return false
             }
         }
@@ -31,6 +33,7 @@ struct ContentView: View {
     @State private var isScanSuccess = false
     @State private var scanProgress: CGFloat = 0.0
     @State private var errorMessage = ""
+    @State private var receivedHtml: String = "" // New: For Single-QR/Fast-Deploy apps
     
     @StateObject private var bufferManager = FrameBufferManager()
     @StateObject private var assembler = ChunkAssembler()
@@ -58,7 +61,8 @@ struct ContentView: View {
                 },
                 onFrameCaptured: { sampleBuffer in
                     bufferManager.addFrame(sampleBuffer)
-                }
+                },
+                appHtml: scanState == .webApp ? receivedHtml : nil
             )
             .ignoresSafeArea()
 
@@ -95,6 +99,28 @@ struct ContentView: View {
                             scanState = .scanning
                             scannedProduct = nil
                             isScanSuccess = false
+                        }
+                    }
+                    Spacer()
+                }
+                .transition(.opacity)
+            }
+
+            // MARK: - Web App / Game Overlay (Controls)
+            if scanState == .webApp {
+                VStack {
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            withAnimation(.spring()) {
+                                scanState = .scanning
+                                receivedHtml = ""
+                            }
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 30))
+                                .foregroundColor(theme.accentColor)
+                                .padding(20)
                         }
                     }
                     Spacer()
@@ -241,7 +267,22 @@ struct ContentView: View {
         // Don't process while card is showing or menu is open
         guard scanState == .scanning, !showMenu else { return }
 
-        // 1. Try as a Stream Chunk
+        // 1. Try as a 'Fast-Deploy' Single-QR App
+        if code.hasPrefix("APP:") {
+            let base64Part = String(code.dropFirst(4))
+            if let decodedData = Data(base64Encoded: base64Part),
+               let htmlString = String(data: decodedData, encoding: .utf8) {
+                logger.log("FAST-DEPLOY: Launching app...")
+                withAnimation(.spring()) {
+                    isScanSuccess = true
+                    receivedHtml = htmlString
+                    scanState = .webApp
+                }
+                return
+            }
+        }
+
+        // 2. Try as a Stream Chunk
         if assembler.addChunk(code) {
             logger.log("LIVE: Found chunk (\(assembler.receivedCount)/\(assembler.totalChunks ?? 0))")
             // Snappy detection pulse

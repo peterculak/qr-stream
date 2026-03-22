@@ -1,11 +1,13 @@
 import SwiftUI
 import AVFoundation
+import WebKit
 
 /// A SwiftUI-wrapped fullscreen camera view that detects QR codes.
 /// Reports the raw string content of detected QR codes.
 struct CameraScannerView: UIViewControllerRepresentable {
     let onCodeScanned: (String) -> Void
     let onFrameCaptured: (CMSampleBuffer) -> Void
+    var appHtml: String? // Pass broadcasted HTML app directly
 
     func makeUIViewController(context: Context) -> CameraScannerViewController {
         let vc = CameraScannerViewController()
@@ -14,15 +16,28 @@ struct CameraScannerView: UIViewControllerRepresentable {
         return vc
     }
 
-    func updateUIViewController(_ uiViewController: CameraScannerViewController, context: Context) {}
+    func updateUIViewController(_ uiViewController: CameraScannerViewController, context: Context) {
+        uiViewController.appHtml = appHtml
+    }
 }
 
 class CameraScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsDelegate, AVCaptureVideoDataOutputSampleBufferDelegate {
     var onCodeScanned: ((String) -> Void)?
     var onFrameCaptured: ((CMSampleBuffer) -> Void)?
+    
+    var appHtml: String? {
+        didSet {
+            if appHtml != oldValue {
+                updateARApp()
+            }
+        }
+    }
 
     private let captureSession = AVCaptureSession()
     private var previewLayer: AVCaptureVideoPreviewLayer?
+    private var webView: WKWebView?
+    private var lastLoadedHtml: String?
+
     private var lastScannedCode: String?
     private var lastScanTime: Date = .distantPast
 
@@ -31,17 +46,55 @@ class CameraScannerViewController: UIViewController, AVCaptureMetadataOutputObje
         view.backgroundColor = .black
         setupCamera()
     }
-
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            self?.captureSession.startRunning()
+    
+    private func setupARWebView() {
+        guard webView == nil else { return }
+        let config = WKWebViewConfiguration()
+        let wv = WKWebView(frame: view.bounds, configuration: config)
+        wv.isOpaque = false
+        wv.backgroundColor = .clear
+        wv.scrollView.backgroundColor = .clear
+        wv.scrollView.isScrollEnabled = false
+        wv.isHidden = true
+        wv.alpha = 0
+        
+        view.addSubview(wv)
+        self.webView = wv
+    }
+    
+    private func updateARApp() {
+        if webView == nil && appHtml != nil {
+            setupARWebView()
+        }
+        
+        guard let wv = webView else { return }
+        if appHtml == lastLoadedHtml { return }
+        
+        if let html = appHtml {
+            setCameraFPS(30) // Conserve resources for WebContent process
+            lastLoadedHtml = html
+            wv.loadHTMLString(html, baseURL: nil)
+            wv.isHidden = false
+            UIView.animate(withDuration: 0.3) { wv.alpha = 1 }
+        } else {
+            UIView.animate(withDuration: 0.3, animations: {
+                wv.alpha = 0
+            }) { _ in 
+                wv.isHidden = true
+                wv.loadHTMLString("", baseURL: nil)
+                self.lastLoadedHtml = nil
+                self.setCameraFPS(60)
+            }
         }
     }
-
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        captureSession.stopRunning()
+    
+    private func setCameraFPS(_ fps: Int) {
+        guard let device = AVCaptureDevice.default(for: .video) else { return }
+        try? device.lockForConfiguration()
+        let duration = CMTime(value: 1, timescale: CMTimeScale(fps))
+        device.activeVideoMinFrameDuration = duration
+        device.activeVideoMaxFrameDuration = duration
+        device.unlockForConfiguration()
     }
 
     override func viewDidLayoutSubviews() {
